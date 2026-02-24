@@ -39,6 +39,7 @@ use core::convert::{self, TryFrom};
 use core::f64;
 use core::fmt;
 use core::iter::{self, Product, Sum};
+use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 use core::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Not, Rem, Shl, Shr, Sub};
 use core::str;
@@ -1651,24 +1652,16 @@ macro_rules! impl_tuple {
 
         impl<$($T: JsGeneric),+> From<($($T,)+)> for ArrayTuple<($($T),+,)> {
             fn from(($($vars,)+): ($($T,)+)) -> Self {
-                let arr = [$(
-                    unsafe { core::mem::transmute_copy::<$T, JsValue>(&$vars) }
-                ),+];
-                core::mem::forget(($($vars,)+));
-                Array::of(&arr).unchecked_into()
+                $(let $vars: JsValue = $vars.upcast_into();)+
+                Array::of(&[$($vars),+]).unchecked_into()
             }
         }
 
         impl<$($T: JsGeneric + Default),+> Default for ArrayTuple<($($T),+,)> {
             fn default() -> Self {
-                $(
-                    let $vars: $T = Default::default();
-                )+
-                let arr = [$(
-                    unsafe { core::mem::transmute_copy::<$T, JsValue>(&$vars) }
-                ),+];
-                core::mem::forget(($($vars,)+));
-                Array::of(&arr).unchecked_into()
+                (
+                    $($T::default(),)+
+                ).into()
             }
         }
 
@@ -3154,10 +3147,20 @@ impl UpcastFrom<Boolean> for bool {}
 
 impl Boolean {
     /// Typed Boolean true constant.
-    pub const TRUE: Boolean = unsafe { core::mem::transmute(JsValue::TRUE) };
+    pub const TRUE: Boolean = Self {
+        obj: Object {
+            obj: JsValue::TRUE,
+            generics: PhantomData,
+        },
+    };
 
     /// Typed Boolean false constant.
-    pub const FALSE: Boolean = unsafe { core::mem::transmute(JsValue::FALSE) };
+    pub const FALSE: Boolean = Self {
+        obj: Object {
+            obj: JsValue::FALSE,
+            generics: PhantomData,
+        },
+    };
 }
 
 impl From<bool> for Boolean {

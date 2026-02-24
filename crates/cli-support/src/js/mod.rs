@@ -4107,11 +4107,12 @@ if (require('worker_threads').isMainThread) {{
                 format!("{} === null", args[0])
             }
 
-            Intrinsic::ObjectIsNullOrUndefined => {
+            Intrinsic::IsNullOrUndefined => {
                 assert_eq!(args.len(), 1);
                 format!("{} == null", args[0])
             }
 
+            // TODO: remove on next schema bump
             Intrinsic::ObjectIsUndefined => {
                 assert_eq!(args.len(), 1);
                 format!("{} === undefined", args[0])
